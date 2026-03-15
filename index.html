@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>dLingo BPO</title>
+<meta name="theme-color" content="#080810"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080810;font-family:'Space Grotesk',sans-serif;color:#f0f0f5;min-height:100vh}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px #22c55e40}50%{box-shadow:0 0 40px #22c55e80}}
+@keyframes ripple{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scan{0%{top:-5%}100%{top:105%}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.scan{position:fixed;left:0;right:0;height:2px;background:linear-gradient(transparent,rgba(34,197,94,.05),transparent);animation:scan 8s linear infinite;pointer-events:none;z-index:999}
+.app{min-height:100vh;background:radial-gradient(ellipse at 20% 0%,#0a1f0a,#080810 60%);padding:14px 12px 44px}
+
+/* HEADER */
+.logo{font-size:22px;font-weight:700;background:linear-gradient(135deg,#22c55e,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center}
+.logo em{font-size:11px;font-style:normal;-webkit-text-fill-color:#4a8a4a;margin-left:4px;background:linear-gradient(135deg,#22c55e30,#22c55e10);border:1px solid #22c55e30;border-radius:4px;padding:1px 6px}
+.tag{text-align:center;font-size:9px;color:#2a4a2a;letter-spacing:2px;text-transform:uppercase;margin:2px 0 14px}
+
+/* STATUS BAR */
+.st{text-align:center;padding:7px;border-radius:8px;font-size:9px;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;border:1px solid #1a1a2a;background:#0a0a14;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:6px}
+.st.ok{color:#22c55e;border-color:#22c55e40}
+.st.wait{color:#f59e0b;border-color:#f59e0b40;animation:pulse 1s infinite}
+.st.live{color:#22c55e;border-color:#22c55e50;background:#0a1a0a}
+.st.err{color:#ef4444;border-color:#ef444440}
+.st-dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.st.live .st-dot{animation:blink .8s infinite}
+
+/* ID CARD */
+.idcard{background:linear-gradient(135deg,#0a180a,#0d1a0d);border:1px solid #1a3a1a;border-radius:14px;padding:14px;margin-bottom:10px;text-align:center}
+.idlbl{font-size:8px;letter-spacing:2px;color:#2a5a2a;text-transform:uppercase;margin-bottom:6px}
+.idval{font-size:24px;font-weight:700;letter-spacing:6px;color:#22c55e;font-family:monospace;margin-bottom:8px}
+.idbts{display:flex;gap:8px;justify-content:center}
+.bc{background:#0a1a0a;border:1px solid #1a4a1a;color:#22c55e;padding:7px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit}
+.bs{background:#0a140d;border:1px solid #1a3a4a;color:#3b82f6;padding:7px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit}
+
+/* LANG */
+.lr{display:grid;grid-template-columns:1fr 30px 1fr;gap:8px;align-items:center;margin-bottom:10px}
+.lb{background:#0d0d1a;border:1px solid #1a1a2a;border-radius:10px;padding:10px}
+.ll{font-size:8px;letter-spacing:2px;color:#2a2a4a;text-transform:uppercase;margin-bottom:5px}
+.lf{font-size:20px;text-align:center;margin-bottom:5px}
+select{width:100%;background:#080810;border:1px solid #1a1a2a;border-radius:6px;color:#c0c0d0;font-family:inherit;font-size:10px;padding:6px;cursor:pointer;outline:none;appearance:none}
+.swp{width:28px;height:28px;border-radius:50%;border:1px solid #2a2a3a;background:#0d0d1a;color:#4a4a7a;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+
+/* CALL BOX */
+.cb{background:#0d0d1a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px}
+.cl{font-size:8px;letter-spacing:2px;color:#3a3a5a;text-transform:uppercase;margin-bottom:8px}
+.cr{display:flex;gap:8px}
+.ci{flex:1;background:#080810;border:1px solid #1a1a2a;border-radius:8px;color:#e0e0f0;font-family:monospace;font-size:18px;padding:9px 12px;outline:none;letter-spacing:4px;font-weight:700;text-transform:uppercase}
+.ci::placeholder{font-size:11px;letter-spacing:1px;font-weight:400;text-transform:none;color:#2a2a4a;font-family:inherit}
+.ci:focus{border-color:#22c55e40}
+.cgo{background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:10px 18px;border-radius:8px;font-size:20px;cursor:pointer}
+
+/* ACTIVE CALL - BPO DASHBOARD */
+.ac{display:none;background:#0a100a;border:1px solid #22c55e20;border-radius:14px;padding:14px;margin-bottom:10px}
+.ac.show{display:block}
+
+/* AGENT / CUSTOMER PANELS */
+.bpo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.bpo-panel{background:#080e08;border:1px solid #1a2a1a;border-radius:10px;padding:10px;position:relative}
+.bpo-panel.speaking{border-color:#22c55e60}
+.bp-label{font-size:8px;letter-spacing:2px;color:#2a4a2a;text-transform:uppercase;margin-bottom:6px}
+.bp-flag{font-size:18px;text-align:center;margin-bottom:4px}
+.bp-status{font-size:9px;color:#2a4a2a;text-align:center;height:14px}
+.bp-status.active{color:#22c55e;animation:blink .8s infinite}
+.bp-text{background:#060c06;border:1px solid #1a2a1a;border-radius:6px;padding:7px 8px;margin-top:6px;font-size:10px;line-height:1.5;color:#4a6a4a;min-height:44px;word-break:break-word}
+.bp-text.has{color:#d0f0d0;animation:fadeUp .3s ease}
+.bp-text.tr{color:#22c55e}
+
+/* CALL INFO */
+.call-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:8px 10px;background:#060c06;border:1px solid #1a2a1a;border-radius:8px}
+.ci-timer{font-size:16px;font-weight:700;color:#22c55e;letter-spacing:2px;font-family:monospace}
+.ci-id{font-size:10px;color:#2a4a2a}
+.ci-mode{font-size:9px;color:#22c55e;background:#0a1a0a;border:1px solid #1a3a1a;padding:3px 8px;border-radius:12px;letter-spacing:1px}
+
+/* AUTO MODE TOGGLE */
+.mode-bar{display:flex;gap:8px;margin-bottom:10px}
+.mode-btn{flex:1;padding:8px;border-radius:8px;font-size:10px;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;border:1px solid #2a2a3a;background:#0d0d1a;color:#4a4a7a;transition:all .2s}
+.mode-btn.active{background:#0a1a0a;border-color:#22c55e40;color:#22c55e}
+
+/* MIC BUTTON */
+.ma{display:flex;justify-content:center;align-items:center;gap:14px;margin:10px 0}
+.mb{width:64px;height:64px;border-radius:50%;border:2px solid #22c55e;background:linear-gradient(135deg,#0a1a0a,#060e06);color:#22c55e;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;position:relative;-webkit-tap-highlight-color:transparent;transition:all .2s}
+.mb.on{animation:glow 1.5s ease-in-out infinite}
+.mb.on::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid #22c55e30;animation:ripple 1s ease-out infinite}
+.eb{width:50px;height:50px;border-radius:50%;border:2px solid #ef4444;background:#1a0808;color:#ef4444;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+
+/* AUTO STATUS */
+.auto-st{text-align:center;font-size:9px;padding:6px;border-radius:6px;background:#060c06;border:1px solid #1a2a1a;color:#2a4a2a;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase}
+.auto-st.listening{color:#22c55e;border-color:#22c55e30;animation:pulse .8s infinite}
+.auto-st.translating{color:#3b82f6;border-color:#3b82f640}
+.auto-st.speaking{color:#f59e0b;border-color:#f59e0b40}
+
+/* INCOMING */
+.inc{display:none;position:fixed;inset:0;background:#000c;z-index:100;align-items:center;justify-content:center}
+.inc.show{display:flex}
+.ic{background:linear-gradient(135deg,#0a180a,#0d1a0d);border:2px solid #22c55e60;border-radius:20px;padding:26px 22px;text-align:center;max-width:280px;width:90%;animation:fadeUp .3s ease}
+.ir{font-size:46px;animation:pulse .8s infinite;margin-bottom:8px}
+.iid{font-size:22px;font-weight:700;color:#22c55e;letter-spacing:4px;font-family:monospace;margin-bottom:12px}
+.ibt{display:flex;gap:12px;justify-content:center}
+.ya{width:58px;height:58px;border-radius:50%;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:22px;cursor:pointer}
+.no{width:58px;height:58px;border-radius:50%;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:22px;cursor:pointer}
+
+/* HISTORY */
+.hist{background:#060c06;border:1px solid #1a2a1a;border-radius:10px;padding:10px;max-height:140px;overflow-y:auto}
+.ht{font-size:8px;letter-spacing:2px;color:#2a4a2a;text-transform:uppercase;margin-bottom:6px}
+.hr{border-left:2px solid #1a3a1a;padding-left:7px;margin-bottom:6px;font-size:10px;line-height:1.5;animation:fadeUp .3s ease}
+.ho{color:#3a5a3a}.htr{color:#22c55e80}
+.note{text-align:center;font-size:9px;color:#1a2a1a;margin-top:12px;line-height:2}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:#080810}::-webkit-scrollbar-thumb{background:#1a2a1a;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+
+<!-- INCOMING -->
+<div class="inc" id="incOv">
+  <div class="ic">
+    <div class="ir">📞</div>
+    <div style="font-size:11px;color:#4a8a4a;margin-bottom:4px">Incoming BPO Call</div>
+    <div class="iid" id="callerId">------</div>
+    <div style="font-size:10px;color:#2a4a2a;margin-bottom:14px">Real-time translation ready</div>
+    <div class="ibt">
+      <button class="ya" onclick="acceptCall()">✓</button>
+      <button class="no" onclick="rejectCall()">✕</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="logo">dLingo <em>BPO</em></div>
+  <div class="tag">Auto Translation · No Button Press · BPO Ready</div>
+  <div class="st wait" id="st"><span class="st-dot"></span><span id="stTxt">Connecting...</span></div>
+
+  <!-- ID -->
+  <div class="idcard">
+    <div class="idlbl">🔑 Mee Agent ID</div>
+    <div class="idval" id="myId">------</div>
+    <div class="idbts">
+      <button class="bc" onclick="copyId()">📋 Copy</button>
+      <button class="bs" onclick="shareId()">📤 Share</button>
+    </div>
+  </div>
+
+  <!-- LANG -->
+  <div class="lr">
+    <div class="lb">
+      <div class="ll">Mee Language</div>
+      <div class="lf" id="myFlag">🇮🇳</div>
+      <select id="myLang" onchange="upFlags()"></select>
+    </div>
+    <button class="swp" onclick="swpLangs()">⇅</button>
+    <div class="lb">
+      <div class="ll">Customer Language</div>
+      <div class="lf" id="thFlag">🇨🇳</div>
+      <select id="thLang" onchange="upFlags()"></select>
+    </div>
+  </div>
+
+  <!-- CALL INPUT -->
+  <div class="cb" id="callBox">
+    <div class="cl">📞 Customer ID enter chesi call cheyyandi</div>
+    <div class="cr">
+      <input class="ci" id="remId" placeholder="e.g. AB12CD" maxlength="6" oninput="this.value=this.value.toUpperCase()"/>
+      <button class="cgo" onclick="startCall()">📞</button>
+    </div>
+  </div>
+
+  <!-- ACTIVE BPO CALL -->
+  <div class="ac" id="actCall">
+
+    <div class="call-info">
+      <div>
+        <div class="ci-timer" id="timer">00:00</div>
+        <div class="ci-id" id="conId">Connected</div>
+      </div>
+      <div class="ci-mode" id="modeLabel">🤖 AUTO</div>
+    </div>
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-bar">
+      <button class="mode-btn active" id="btnAuto" onclick="setMode('auto')">🤖 Auto (BPO)</button>
+      <button class="mode-btn" id="btnManual" onclick="setMode('manual')">🎤 Manual</button>
+    </div>
+
+    <!-- AUTO STATUS -->
+    <div class="auto-st" id="autoSt">Auto mode — matladite automatic ga translate avutundi</div>
+
+    <!-- BPO PANELS -->
+    <div class="bpo-grid">
+      <div class="bpo-panel" id="myPanel">
+        <div class="bp-label">👤 Mee (Agent)</div>
+        <div class="bp-flag" id="myPFlag">🇮🇳</div>
+        <div class="bp-status" id="myStatus">—</div>
+        <div class="bp-text" id="mySpoken">Matladandi...</div>
+        <div class="bp-text tr" id="myTrans" style="margin-top:4px">Translation...</div>
+      </div>
+      <div class="bpo-panel" id="thPanel">
+        <div class="bp-label">👥 Customer</div>
+        <div class="bp-flag" id="thPFlag">🇨🇳</div>
+        <div class="bp-status" id="thStatus">—</div>
+        <div class="bp-text" id="thSpoken">Waiting...</div>
+        <div class="bp-text tr" id="thTrans" style="margin-top:4px">Translation...</div>
+      </div>
+    </div>
+
+    <!-- MANUAL MIC (hidden in auto) -->
+    <div class="ma" id="manualCtrl" style="display:none">
+      <button class="eb" onclick="endCall()">📵</button>
+      <button class="mb" id="micBtn" onclick="toggleMic()">🎤</button>
+    </div>
+
+    <!-- AUTO CONTROLS -->
+    <div id="autoCtrl" style="display:flex;justify-content:center;gap:14px;margin:10px 0;align-items:center">
+      <button class="eb" onclick="endCall()">📵</button>
+      <button class="mb on" id="autoMicBtn" style="cursor:default;font-size:18px">🟢<br/><span style="font-size:8px">AUTO</span></button>
+    </div>
+
+  </div>
+
+  <!-- HISTORY -->
+  <div id="histBox" style="display:none">
+    <div class="hist">
+      <div class="ht">📋 Call Log</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <div class="note">✦ 100% Free · BPO Grade · Auto translate<br/>📞 World ekkada nunchi aina call avutundi</div>
+</div>
+
+<script>
+const LANGS=[
+  {c:"te",s:"te-IN",n:"Telugu",f:"🇮🇳"},
+  {c:"hi",s:"hi-IN",n:"Hindi",f:"🇮🇳"},
+  {c:"en",s:"en-US",n:"English",f:"🇺🇸"},
+  {c:"zh-CN",s:"zh-CN",n:"Chinese",f:"🇨🇳"},
+  {c:"ja",s:"ja-JP",n:"Japanese",f:"🇯🇵"},
+  {c:"ko",s:"ko-KR",n:"Korean",f:"🇰🇷"},
+  {c:"ar",s:"ar-SA",n:"Arabic",f:"🇸🇦"},
+  {c:"es",s:"es-ES",n:"Spanish",f:"🇪🇸"},
+  {c:"fr",s:"fr-FR",n:"French",f:"🇫🇷"},
+  {c:"de",s:"de-DE",n:"German",f:"🇩🇪"},
+  {c:"pt",s:"pt-BR",n:"Portuguese",f:"🇧🇷"},
+  {c:"ru",s:"ru-RU",n:"Russian",f:"🇷🇺"},
+  {c:"it",s:"it-IT",n:"Italian",f:"🇮🇹"},
+  {c:"ta",s:"ta-IN",n:"Tamil",f:"🇮🇳"},
+  {c:"kn",s:"kn-IN",n:"Kannada",f:"🇮🇳"},
+  {c:"ml",s:"ml-IN",n:"Malayalam",f:"🇮🇳"},
+  {c:"tr",s:"tr-TR",n:"Turkish",f:"🇹🇷"},
+  {c:"vi",s:"vi-VN",n:"Vietnamese",f:"🇻🇳"},
+  {c:"th",s:"th-TH",n:"Thai",f:"🇹🇭"},
+  {c:"id",s:"id-ID",n:"Indonesian",f:"🇮🇩"},
+  {c:"nl",s:"nl-NL",n:"Dutch",f:"🇳🇱"},
+  {c:"bn",s:"bn-IN",n:"Bengali",f:"🇧🇩"},
+  {c:"ur",s:"ur-PK",n:"Urdu",f:"🇵🇰"},
+  {c:"tl",s:"fil-PH",n:"Filipino",f:"🇵🇭"},
+];
+['myLang','thLang'].forEach((id,i)=>{
+  const s=document.getElementById(id);
+  LANGS.forEach(l=>s.add(new Option(l.f+' '+l.n,l.c)));
+  s.value=i===0?'te':'zh-CN';
+});
+const gL=c=>LANGS.find(l=>l.c===c);
+function upFlags(){
+  const mf=gL(document.getElementById('myLang').value)?.f||'🌐';
+  const tf=gL(document.getElementById('thLang').value)?.f||'🌐';
+  document.getElementById('myFlag').textContent=mf;
+  document.getElementById('thFlag').textContent=tf;
+  document.getElementById('myPFlag').textContent=mf;
+  document.getElementById('thPFlag').textContent=tf;
+}
+function swpLangs(){
+  const t=document.getElementById('myLang').value;
+  document.getElementById('myLang').value=document.getElementById('thLang').value;
+  document.getElementById('thLang').value=t;upFlags();
+}
+
+let peer,conn,incConn,myId;
+let callActive=false,tInt,tSec=0,hist=[];
+let mode='auto'; // 'auto' or 'manual'
+let autoRecog=null,autoRunning=false;
+let manualRecog=null,manualOn=false,manualFin='';
+let isSpeaking=false; // TTS playing — don't listen
+
+function setSt(msg,cls){
+  document.getElementById('st').className='st '+(cls||'');
+  document.getElementById('stTxt').textContent=msg;
+}
+function setAutoSt(msg,cls){
+  const el=document.getElementById('autoSt');
+  el.className='auto-st '+(cls||'');
+  el.textContent=msg;
+}
+function genId(){return Math.random().toString(36).substr(2,6).toUpperCase();}
+
+function initPeer(){
+  setSt('Connecting...','wait');
+  peer=new Peer(genId(),{
+    host:'0.peerjs.com',port:443,secure:true,path:'/',
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}
+  });
+  peer.on('open',id=>{
+    myId=id;document.getElementById('myId').textContent=id;
+    setSt('✅ Ready — ID share chesi call cheyyandi','ok');
+  });
+  peer.on('connection',c=>{
+    incConn=c;
+    document.getElementById('callerId').textContent=c.peer;
+    document.getElementById('incOv').classList.add('show');
+  });
+  peer.on('error',()=>{
+    setSt('⚠️ Reconnecting...','err');
+    setTimeout(()=>{try{peer.destroy();}catch(e){}initPeer();},4000);
+  });
+}
+
+function acceptCall(){
+  conn=incConn;
+  document.getElementById('incOv').classList.remove('show');
+  setupConn(conn.peer);
+  conn.on('data',rcvData);conn.on('close',onEnd);
+}
+function rejectCall(){incConn?.close();document.getElementById('incOv').classList.remove('show');}
+
+function startCall(){
+  const rid=document.getElementById('remId').value.trim().toUpperCase();
+  if(!rid||rid.length<4){alert('Valid ID enter cheyyandi!');return;}
+  if(!peer||!myId){alert('Server ready kaledu');return;}
+  setSt('📞 Calling '+rid+'...','wait');
+  conn=peer.connect(rid,{reliable:true});
+  conn.on('open',()=>setupConn(rid));
+  conn.on('data',rcvData);conn.on('close',onEnd);
+  conn.on('error',()=>setSt('❌ Failed — ID check cheyyandi','err'));
+}
+
+function setupConn(rid){
+  callActive=true;
+  document.getElementById('callBox').style.display='none';
+  document.getElementById('actCall').classList.add('show');
+  document.getElementById('conId').textContent='ID: '+rid;
+  setSt('🟢 BPO Live — '+rid,'live');
+  tSec=0;
+  tInt=setInterval(()=>{
+    tSec++;
+    document.getElementById('timer').textContent=
+      String(Math.floor(tSec/60)).padStart(2,'0')+':'+String(tSec%60).padStart(2,'0');
+  },1000);
+  setMode('auto');
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('btnAuto').classList.toggle('active',m==='auto');
+  document.getElementById('btnManual').classList.toggle('active',m==='manual');
+  document.getElementById('manualCtrl').style.display=m==='manual'?'flex':'none';
+  document.getElementById('autoCtrl').style.display=m==='auto'?'flex':'none';
+  document.getElementById('modeLabel').textContent=m==='auto'?'🤖 AUTO':'🎤 MANUAL';
+  if(m==='auto'){
+    stopManualMic();
+    startAutoListen();
+    setAutoSt('🎙️ Auto listening — matladite automatic translate avutundi','listening');
+  } else {
+    stopAutoListen();
+    setAutoSt('Manual mode — 🎤 button press chesi matladandi','');
+  }
+}
+
+// ===== AUTO MODE =====
+function startAutoListen(){
+  if(autoRunning)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  autoRecog=new SR();
+  const ml=document.getElementById('myLang').value;
+  autoRecog.lang=gL(ml)?.s||ml;
+  autoRecog.interimResults=true;
+  autoRecog.continuous=false; // VAD: auto stops when silence
+  let fin='';
+
+  autoRecog.onstart=()=>{
+    autoRunning=true;
+    if(!isSpeaking)setAutoSt('🎙️ Listening...','listening');
+    document.getElementById('myStatus').textContent='● Listening';
+    document.getElementById('myStatus').className='bp-status active';
+  };
+  autoRecog.onresult=e=>{
+    let fi='',it='';
+    for(let i=0;i<e.results.length;i++){
+      if(e.results[i].isFinal)fi+=e.results[i][0].transcript+' ';
+      else it+=e.results[i][0].transcript;
+    }
+    const d=(fi+it).trim();
+    if(d){document.getElementById('mySpoken').textContent=d;document.getElementById('mySpoken').className='bp-text has';}
+    fin=fi.trim()||d;
+  };
+  autoRecog.onend=async()=>{
+    autoRunning=false;
+    document.getElementById('myStatus').textContent='—';
+    document.getElementById('myStatus').className='bp-status';
+    if(fin&&fin.trim()&&callActive&&mode==='auto'&&!isSpeaking){
+      setAutoSt('⚙️ Translating...','translating');
+      await sendSp(fin.trim());
+    }
+    // Restart after short pause
+    if(callActive&&mode==='auto'){
+      setTimeout(()=>{if(callActive&&mode==='auto'&&!isSpeaking)startAutoListen();},800);
+    }
+  };
+  autoRecog.onerror=e=>{
+    autoRunning=false;
+    if(e.error==='no-speech'||e.error==='aborted'){
+      if(callActive&&mode==='auto')setTimeout(()=>{if(callActive&&mode==='auto'&&!isSpeaking)startAutoListen();},500);
+      return;
+    }
+  };
+  if(!isSpeaking){
+    try{autoRecog.start();}catch(e){autoRunning=false;}
+  }
+}
+function stopAutoListen(){
+  autoRunning=false;
+  try{autoRecog?.abort();}catch(e){}
+}
+
+// ===== MANUAL MODE =====
+function toggleMic(){manualOn?stopManualMic():startManualMic();}
+function startManualMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Chrome use cheyyandi');return;}
+  manualRecog=new SR();
+  const ml=document.getElementById('myLang').value;
+  manualRecog.lang=gL(ml)?.s||ml;
+  manualRecog.interimResults=true;manualRecog.continuous=true;manualFin='';
+  manualRecog.onstart=()=>{
+    manualOn=true;
+    document.getElementById('micBtn').classList.add('on');
+    document.getElementById('micBtn').textContent='⏹';
+    document.getElementById('mySpoken').textContent='Listening...';
+  };
+  manualRecog.onresult=e=>{
+    let fi='',it='';
+    for(let i=0;i<e.results.length;i++){
+      if(e.results[i].isFinal)fi+=e.results[i][0].transcript+' ';
+      else it+=e.results[i][0].transcript;
+    }
+    const d=(fi+it).trim();
+    document.getElementById('mySpoken').textContent=d;
+    document.getElementById('mySpoken').className='bp-text has';
+    manualFin=fi.trim()||d;
+  };
+  manualRecog.onend=async()=>{
+    if(manualOn){try{manualRecog.start();}catch(e){}return;}
+    document.getElementById('micBtn').classList.remove('on');
+    document.getElementById('micBtn').textContent='🎤';
+    const t=manualFin||document.getElementById('mySpoken').textContent;
+    if(t&&t.trim()&&t!=='Listening...')await sendSp(t.trim());
+  };
+  manualRecog.onerror=e=>{
+    if(e.error==='no-speech')return;
+    manualOn=false;
+    document.getElementById('micBtn').classList.remove('on');
+    document.getElementById('micBtn').textContent='🎤';
+  };
+  manualRecog.start();
+}
+function stopManualMic(){manualOn=false;try{manualRecog?.stop();}catch(e){}}
+
+// ===== TRANSLATE & SEND =====
+async function xlate(txt,fr,to){
+  if(fr===to)return txt;
+  try{
+    const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl='+fr+'&tl='+to+'&dt=t&q='+encodeURIComponent(txt));
+    const d=await r.json();
+    return d[0]?.map(x=>x?.[0]).filter(Boolean).join('')||txt;
+  }catch{return txt;}
+}
+
+async function sendSp(text){
+  if(!conn||!callActive)return;
+  const ml=document.getElementById('myLang').value;
+  const tl=document.getElementById('thLang').value;
+  document.getElementById('myTrans').textContent='Translating...';
+  const tr=await xlate(text,ml,tl);
+  document.getElementById('myTrans').textContent=tr;
+  document.getElementById('myTrans').className='bp-text tr has';
+  if(mode==='auto')setAutoSt('✅ Sent — Listening...','listening');
+  conn.send({type:'speech',text:tr,orig:text,fl:tl});
+  addHist(text,tr,ml,tl,'me');
+}
+
+// ===== RECEIVE =====
+async function rcvData(data){
+  if(data.type!=='speech')return;
+  const ml=document.getElementById('myLang').value;
+  const fin=await xlate(data.text,data.fl,ml)||data.text;
+  document.getElementById('thSpoken').textContent=data.orig||data.text;
+  document.getElementById('thSpoken').className='bp-text has';
+  document.getElementById('thTrans').textContent=fin;
+  document.getElementById('thTrans').className='bp-text tr has';
+  document.getElementById('thStatus').textContent='● Speaking';
+  document.getElementById('thStatus').className='bp-status active';
+  document.getElementById('thPanel').classList.add('speaking');
+  addHist(data.orig||data.text,fin,data.fl,ml,'them');
+
+  // Stop listening while TTS plays
+  isSpeaking=true;
+  if(mode==='auto'){stopAutoListen();setAutoSt('🔊 Customer speaking...','speaking');}
+
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(fin);
+  u.lang=gL(ml)?.s||ml;u.rate=0.88;u.pitch=1;u.volume=1;
+  const vs=window.speechSynthesis.getVoices();
+  const ts=gL(ml)?.s||ml;
+  const m=vs.find(v=>v.lang===ts)||vs.find(v=>v.lang.startsWith(ts.split('-')[0]))||null;
+  if(m)u.voice=m;
+  u.onend=()=>{
+    isSpeaking=false;
+    document.getElementById('thStatus').textContent='—';
+    document.getElementById('thStatus').className='bp-status';
+    document.getElementById('thPanel').classList.remove('speaking');
+    if(mode==='auto'&&callActive){
+      setTimeout(()=>startAutoListen(),600);
+      setAutoSt('🎙️ Listening...','listening');
+    }
+  };
+  window.speechSynthesis.speak(u);
+}
+
+function onEnd(){
+  callActive=false;manualOn=false;isSpeaking=false;
+  stopAutoListen();stopManualMic();
+  clearInterval(tInt);window.speechSynthesis.cancel();
+  document.getElementById('actCall').classList.remove('show');
+  document.getElementById('callBox').style.display='block';
+  document.getElementById('remId').value='';
+  setSt('📵 Call ended','');
+}
+function endCall(){conn?.close();onEnd();}
+
+function addHist(orig,trans,fl,tl,who){
+  hist.push({orig,trans,fl,tl,who});if(hist.length>30)hist.shift();
+  document.getElementById('histBox').style.display='block';
+  document.getElementById('histList').innerHTML=hist.slice(-10).reverse().map(h=>`
+    <div class="hr">
+      <div class="ho">${h.who==='me'?'👤':'👥'} ${gL(h.fl)?.f||''} "${h.orig}"</div>
+      <div class="htr">${gL(h.tl)?.f||''} "${h.trans}"</div>
+    </div>`).join('');
+}
+
+function copyId(){
+  navigator.clipboard?.writeText(myId).then(()=>{
+    const b=document.querySelector('.bc');b.textContent='✅ Copied!';
+    setTimeout(()=>b.textContent='📋 Copy',2000);
+  }).catch(()=>prompt('Mee ID:',myId));
+}
+function shareId(){
+  const msg='dLingo BPO — na tho connect avvandi!\nAgent ID: '+myId+'\nApp: https://dlingo.vercel.app';
+  if(navigator.share)navigator.share({title:'dLingo BPO Call',text:msg});
+  else{navigator.clipboard?.writeText(msg);alert('Copied! WhatsApp lo paste cheyyandi');}
+}
+
+upFlags();initPeer();
+</script>
+</body>
+</html>
