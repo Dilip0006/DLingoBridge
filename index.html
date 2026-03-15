@@ -168,7 +168,7 @@ select{width:100%;background:#080810;border:1px solid #1a1a2a;border-radius:6px;
   <div class="cb" id="callBox">
     <div class="cl">📞 Customer ID enter chesi call cheyyandi</div>
     <div class="cr">
-      <input class="ci" id="remId" placeholder="e.g. AB12CD" maxlength="6" oninput="this.value=this.value.toUpperCase()"/>
+      <input class="ci" id="remId" placeholder="e.g. AB12CD" maxlength="10" oninput="this.value=this.value.toUpperCase()"/>
       <button class="cgo" onclick="startCall()">📞</button>
     </div>
   </div>
@@ -299,7 +299,7 @@ function setAutoSt(msg,cls){
   el.className='auto-st '+(cls||'');
   el.textContent=msg;
 }
-function genId(){return Math.random().toString(36).substr(2,6).toUpperCase();}
+function genId(){return ( Math.random().toString(36).substr(2,5) + Math.random().toString(36).substr(2,5) ).toUpperCase();}
 
 function initPeer(){
   setSt('Connecting...','wait');
