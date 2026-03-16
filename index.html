@@ -258,7 +258,6 @@ async function translateUI(langCode) {
   }
 }
 
-function onMeeLangChange() { translateUI(document.getElementById("meeLang").value); }
 
 // ─── SMART TRANSLATION ───
 async function smartTranslate(text, fromLang, toLang, speaker) {
@@ -427,6 +426,27 @@ function swapLangs() {
   if (cOpts.includes(mVal)) c.value = mVal;
   if (mOpts.includes(cVal)) m.value = cVal;
   onMeeLangChange();
+}
+
+// ─── AUTO TRANSLATE ON PAGE LOAD ───
+// Save last used language in localStorage and restore on load
+document.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("dlingo-lang");
+  if (saved) {
+    const sel = document.getElementById("meeLang");
+    if ([...sel.options].some(o => o.value === saved)) {
+      sel.value = saved;
+    }
+  }
+  translateUI(document.getElementById("meeLang").value);
+});
+
+// Save language choice whenever it changes
+const _origOnChange = onMeeLangChange;
+function onMeeLangChange() {
+  const val = document.getElementById("meeLang").value;
+  localStorage.setItem("dlingo-lang", val);
+  translateUI(val);
 }
 </script>
 </body>
